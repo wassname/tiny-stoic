@@ -50,8 +50,8 @@ PREAMBLE = {'quiz': '', 'noneutral': 'Assume that every person you see is acting
 
 
 ROWS = os.environ.get('ROWS', 'all')  # all | headline
-HEADLINE = lambda r: r['stoic_specific'] and not r['common_disputed'] and not r['stoic_contested'] and r['judgement_shown'] and r['verdict_basis'] != 'inferred'  # = scripts/09_card_tables.py headline
-ASK = tuple(os.environ.get('ASK', 'valence,virtue').split(','))  # the MFV question is kept in Q for reference but no longer asked (not used by the card; saves a third of the cost)
+HEADLINE = lambda r: r['stoic_specific'] and not r['common_disputed'] and not r['stoic_contested'] and r['verdict_basis'] != 'inferred'  # = scripts/09_card_tables.py headline
+ASK = tuple(os.environ.get('ASK', 'valence').split(','))  # the card's runs ask valence only; the MFV question is kept in Q for reference, not asked
 MAX_TOKENS = 32000  # flash models often reason 16k-30k on hard moral items (wassname)
 FINAL_ANSWER = 'Reasoning budget exhausted. Return only the number now.'  # follow-up pattern from wassname's gist b7f76e42 (judge.py `_call`)
 
@@ -170,23 +170,19 @@ def run(config, model):
                 c[o] += 1
         n = len(sub)
         md.append(f"| {name} | {n} | {pct(c['stoic'], n)} | {pct(c['common'], n)} | {c['other']} | {c['order changed']} | {c['one missing']} | {c['both missing']} |")
-    md += ['\n## By our virtue label\n', '| virtue | n | valence = Stoic | valence = everyday | virtue answer in ours or virtue_other | virtue answer = ours | no usable answer (of 2n) |', '|:--|--:|--:|--:|--:|--:|--:|']
-    conf = Counter()
+    md += ['\n## By virtue at stake (a row counts under each of its `virtues`)\n', '| virtue | n | valence = Stoic | valence = everyday | virtue answer in the row\'s virtues | no usable answer (of 2n) |', '|:--|--:|--:|--:|--:|--:|']
     for v in vir[:4] + ['all']:
-        sub = [r for r in rows if v == 'all' or r['virtue'] == v]
-        n, st, ev, vo, vx, bad = len(sub), 0, 0, 0, 0, 0
+        sub = [r for r in rows if v == 'all' or v in r['virtues']]
+        n, st, ev, vo, bad = len(sub), 0, 0, 0, 0
         for r in sub:
             o = outcome(r, 'valence')
             if isinstance(o, int): st += lab[o] == r['valence']; ev += lab[o] == r['common_valence']
             else: bad += 1
             q = outcome(r, 'virtue') if 'virtue' in ASK else 'not asked'
             if isinstance(q, int):
-                vo += vir[q] in [r['virtue'], *filter(None, r['virtue_other'].split(';'))]; vx += vir[q] == r['virtue']
-                if v == 'all': conf[(r['virtue'], vir[q])] += 1
+                vo += vir[q] in r['virtues']
             else: bad += 1
-        md.append(f'| {v} | {n} | {pct(st, n)} | {pct(ev, n)} | {pct(vo, n)} | {pct(vx, n)} | {bad} |')
-    md += ['\n## Virtue confusion (rows: our label, columns: model answer, same in both orders)\n', '| ours \\ model | ' + ' | '.join(vir) + ' |', '|:--|' + '--:|' * 5]
-    md += [f'| {a} | ' + ' | '.join(str(conf[(a, b)]) for b in vir) + ' |' for a in vir[:4]]
+        md.append(f'| {v} | {n} | {pct(st, n)} | {pct(ev, n)} | {pct(vo, n)} | {bad} |')
     (OUT / f'probe_{config}_{PROMPT}{"" if ROWS == "all" else "_" + ROWS}_summary.md').write_text('\n'.join(md) + '\n')
     print('\n'.join(md))
 

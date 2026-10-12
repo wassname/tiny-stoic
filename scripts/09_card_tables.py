@@ -14,7 +14,7 @@ MODEL = '~deepseek__deepseek-flash-latest'
 LAB = {0: 'virtue', 1: 'vice', 2: 'neutral'}  # probe options: acting well, acting badly, neither well nor badly
 SUFFIX = {'core': '', 'extended': ''}  # v4 clean run: all rows, pinned host (both configs); '_headline' was the budget mode
 load = lambda cfg: [json.loads(l) for l in (ROOT / f'data/{cfg}/vignettes.jsonl').read_text().splitlines()]
-headline = lambda r: r['stoic_specific'] and not r['common_disputed'] and not r['stoic_contested'] and r['judgement_shown'] and r['verdict_basis'] != 'inferred'
+headline = lambda r: r['stoic_specific'] and not r['common_disputed'] and not r['stoic_contested'] and r['verdict_basis'] != 'inferred'
 
 
 def answers(config, prompt):
@@ -24,18 +24,22 @@ def answers(config, prompt):
 
 
 def table():
-    """One table: extended Stoic-specific rows by virtue, then all, then core all."""
+    """One table: extended Stoic-specific rows by virtue, then all, then core all. Percent of rows; best Stoic-answer cell per row in bold."""
     runs = [('plain', 'quiz'), ('control', 'noneutral'), ('reading line only', 'readonly'), ('Stoic-instructed', 'stoicread')]
-    out = ['| Stoic-specific rows | n | plain: everyday answer | ' + ' | '.join(f'{n}: Stoic answer' for n, _ in runs) + ' |', '|:--|--:|' + '--:|' * (len(runs) + 1)]
+    out = ['| Stoic-specific rows | n | *floor: always the commonest label* | *plain: commonsense answer* | ' + ' | '.join(f'{n}: Stoic answer↑' for n, _ in runs) + ' |', '|:--|--:|' + '--:|' * (len(runs) + 2)]
+    pct = lambda k, n: f'{100 * k / n:.0f}%'
     for config in ('extended', 'core'):
         rows = [r for r in load(config) if headline(r)]
         A = {pr: answers(config, pr) for _, pr in runs}
-        groups = [(v, [r for r in rows if r['virtue'] == v]) for v in ('wisdom', 'justice', 'courage', 'temperance')] if config == 'extended' else []
+        groups = [(v, [r for r in rows if v in r['virtues']]) for v in ('wisdom', 'justice', 'courage', 'temperance')] if config == 'extended' else []  # a row counts under each virtue at stake
+        groups += [('famous story (`famous`)', [r for r in rows if r['famous']]), ('less-known story', [r for r in rows if not r['famous']])] if config == 'extended' else []
         for name, sub in groups + [(f'**{config}, all of these**', rows)]:
             if sub:
-                out.append(f"| {name} | {len(sub)} | {sum(A['quiz'][r['id']] == r['common_valence'] for r in sub)} | " + ' | '.join(str(sum(A[pr][r['id']] == r['valence'] for r in sub)) for _, pr in runs) + ' |')
+                k = [sum(A[pr][r['id']] == r['valence'] for r in sub) for _, pr in runs]
+                cells = [f'**{pct(x, len(sub))}**' if x == max(k) else pct(x, len(sub)) for x in k]
+                floor = max(sum(r['valence'] == l for r in sub) for l in ('virtue', 'vice', 'neutral'))
+                out.append(f"| {name} | {len(sub)} | *{pct(floor, len(sub))}* | *{pct(sum(A['quiz'][r['id']] == r['common_valence'] for r in sub), len(sub))}* | " + ' | '.join(cells) + ' |')
     return '\n'.join(out)
-
 
 BOOKS = [  # (citation prefix, book as listed on the card); every row must match one, in order
     ('Pigliucci & Lopez', 'Massimo Pigliucci & Gregory Lopez, *A Handbook for New Stoics* (2019)'),
@@ -87,7 +91,7 @@ def sources():
 
 section = f"""## Example eval
 
-As run by [scripts/eval/01_probe_openrouter.py](scripts/eval/01_probe_openrouter.py) on DeepSeek v4.1 Flash, asking "Morally, is the person you see acting well, badly, or neither?" in both option orders (an answer counts if it is the same in both). Control adds "Assume that every person you see is acting either well or badly."; Stoic-instructed adds Part 1 of the guide and one reading line ([prompt](results/prompts/stoicread_valence.md)). Rows are Stoic-specific (the Stoic and everyday labels differ), with a clear label on both sides (not `stoic_contested` or `common_disputed`), the judgement shown in the vignette (`judgement_shown`), and the source's verdict stated, not inferred. The Stoic-instructed prompt leaves out one doctrine sentence that tells the scenario of core row SW-018. More: [results/eval_compare.md](results/eval_compare.md).
+As run by [scripts/eval/01_probe_openrouter.py](scripts/eval/01_probe_openrouter.py) on DeepSeek v4.1 Flash, asking "Morally, is the person you see acting well, badly, or neither?" in both option orders (an answer counts if it is the same in both). Control adds "Assume that every person you see is acting either well or badly."; Stoic-instructed adds Part 1 of the guide and one reading line ([prompt](results/prompts/stoicread_valence.md)). Rows are Stoic-specific (the Stoic and commonsense labels differ), with a clear label on both sides (not `stoic_contested` or `common_disputed`), and the source's verdict stated, not inferred. The Stoic-instructed prompt leaves out one doctrine sentence that tells the scenario of core row SW-018. A row counts under each virtue at stake (`virtues`). Cells: percent of rows answered with the Stoic label (↑ better; best per row in bold); italic columns are references: the floor (always giving that group's commonest Stoic label) and the plain run's answer matching the commonsense label, which shows these rows are where the two views differ. More: [results/eval_compare.md](results/eval_compare.md).
 
 {table()}
 

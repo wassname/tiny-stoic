@@ -180,21 +180,21 @@ This part is for us and for anyone who checks the labels. Rules R1-R9 say how a 
 
 | rule | primary text | expert |
 |:--|:--|:--|
-| R1 judge the judgement behind the act or feeling | *Discourses* 4.8, *Handbook* 45 | Seddon 2006, Long 2002 §8.2 |
+| R1 judge the judgement behind the act or feeling; when it is not stated, estimate it from the scene | *Discourses* 4.8, *Handbook* 45 | Seddon 2006, Long 2002 §8.2 |
 | R2 an assented passion is acting badly, even with no outward deed | *Handbook* 5, 19, 20; *Discourses* 2.13, 3.2 | Long 2002 §9.3; Konstan 2015 |
 | R3 a first movement alone is neither | fragment 9 | Gill 2014 note; Long 2002 §9.4 |
 | R4 tears, sympathy and good feelings are not the fault; judging the loss an evil is | *Handbook* 16; *Discourses* 1.11; DL 7.116; Seneca *Letters* 99 | Long 2002 §9.3-9.4 |
 | R5 (convention) "virtue" means acting well as a person making progress, not a sage's perfect act | *Discourses* 1.4, 4.8 | Long 2002 §1.5, §8.4; Graver & Long 2015; Brittain & Brennan 2002 |
 | R6 what is appropriate depends on the person's role | *Handbook* 30; *Discourses* 2.10, 4.1 | Long 2002 §9.2 |
-| R7 `neutral` needs positive evidence: a first movement, or an act reason neither urges nor forbids | DL 7.109; fragment 9 | Inwood 2005 |
-| R8 (convention) one main cardinal virtue; the rest in `virtue_other` | Arius 5b2; Cicero *De Officiis* 1.23 | Hadot 2001; SEP "Stoicism" §4.2; IEP "Stoic Ethics"; Seddon 2006 |
+| R7 `neutral` is a reading like any other: it needs a first movement or an act reason neither urges nor forbids | DL 7.109; fragment 9 | Inwood 2005 |
+| R8 (convention) every cardinal virtue at stake, unranked; wisdom only when no other virtue's field fits | Arius 5b2; Cicero *De Officiis* 1.23 | Hadot 2001; SEP "Stoicism" §4.2; IEP "Stoic Ethics"; Seddon 2006 |
 | R9 (convention) disputes follow Epictetus; else `stoic_contested`; a source's praise is not by itself a Stoic verdict | Cicero *De Officiis* 3.50-51, 3.16 | Inwood 2005; L4 notes |
 
 ### Labels
 
-- `valence` has three values: `virtue` (acting well), `vice` (acting badly), `neutral` (neither well nor badly). This is our convention. In strict Stoic terms only a sage's act is a right act (*katorthōma*); an ordinary person's good act is at most an appropriate act (*kathēkon*) done for the right reason. We label it `virtue` because Epictetus calls an act "well done" when it "proceeds from correct judgements" and addresses people making progress, not sages (R5). This is our convention; no expert endorses it as a technical label.
-- `virtue`: the one cardinal virtue (wisdom, justice, courage, temperance) the act most approximates, or fails; `virtue_other`: others that also fit (R8).
-- `common_valence` (everyday label): what most people today would say of the person, from the vignette alone. It uses no Stoic doctrine and no source text.
+- `p_valence`: the labeller's probabilities for well / badly / neither (R1). `valence` is the most likely of them and has three values: `virtue` (acting well), `vice` (acting badly), `neutral` (neither well nor badly). This is our convention. In strict Stoic terms only a sage's act is a right act (*katorthōma*); an ordinary person's good act is at most an appropriate act (*kathēkon*) done for the right reason. We label it `virtue` because Epictetus calls an act "well done" when it "proceeds from correct judgements" and addresses people making progress, not sages (R5). This is our convention; no expert endorses it as a technical label.
+- `virtues`: every cardinal virtue (wisdom, justice, courage, temperance) at stake, unranked (R8).
+- `common_valence` (commonsense-morality label): how the person is judged by commonsense morality, "the body of moral standards and principles that most people intuitively accept" (Reid 1788, as used by Hendrycks et al., *Aligning AI With Shared Human Values*, ICLR 2021), from the vignette alone. It uses no Stoic doctrine and no source text.
 - `stoic_specific`: the Stoic and everyday labels differ.
 - `stoic_contested`: Epictetus's framing does not settle the verdict, or the source's own verdict differs from it; `contested_note` says who holds which view (R9).
 - Source: the text the situation comes from (`source`, `source_quote`). The verdict is not the source's: it is Epictetus's verdict on the act as the vignette shows it.
@@ -213,7 +213,7 @@ Long on what is up to us:
 >
 > (A. A. Long, *Epictetus: A Stoic and Socratic Guide to Life*, OUP 2002, §8.2)
 
-So a vignette must show the judgement (the motive, what the person treats as good or bad), for praise as much as for blame. If it shows only an outward act, *Handbook* 45 says we cannot call it bad, and *Discourses* 4.8 says we cannot praise it either. Our convention: such a row is rewritten to show the judgement, or flagged; it is not labelled `neutral` by default.
+So the verdict follows the judgement (the motive, what the person treats as good or bad), for praise as much as for blame. Epictetus's advice in *Handbook* 45 is about not rushing to blame a real neighbour; a vignette is a scene written to be judged. Our convention (wassname, 2026-10-12: "where pictetus is a boolean classifier we can still estimate the prob behind the bool"): read the most likely judgement from what the scene shows (the act, any stated reason, the person's role, the setting), as a reader would, and give a probability to each verdict (well, badly, neither). The label is the most likely verdict. When no reading is clearly most likely, the row is `stoic_contested`. Do not refuse a verdict because the motive is not stated in words; do not invent a motive the scene gives no hint of.
 
 ### R2. An assented passion is acting badly, even with no outward deed
 
@@ -267,7 +267,7 @@ Good feelings are not the fault either. Long:
 
 So rational caution, goodwill, affection and joy (Diogenes Laertius 7.116, Part 1) are not passions; acted on with reason they can be acting well (*Discourses* 1.11: "both affectionate and reasonable ... right and good").
 
-So tears alone do not decide the label (R1). A vignette must show which case it is: tears that come at the first blow, unwilled (`neutral`, R3 and Seneca *Letters* 99.18-19), or a judgement that the death is an evil (she says it is the worst evil that could befall her: `vice`). Elapsed time alone is not a test.
+So tears alone do not decide the label (R1). Estimate from the scene which case it shows: tears that come at the first blow, unwilled (`neutral`, R3 and Seneca *Letters* 99.18-19), or a judgement that the death is an evil (she says it is the worst evil that could befall her: `vice`). Elapsed time alone is not a test.
 
 ### R5. "virtue" means acting well while making progress
 
@@ -313,9 +313,9 @@ Primary: Diogenes Laertius 7.109; fragment 9. Inwood: a type of act may be "neit
 >
 > (Brad Inwood, *Reading Seneca*, OUP 2005, p. 103)
 
-There is a tension here. Diogenes Laertius sorts types of act, and some types are "neither"; Inwood says an actual act, by a person who knows what they are doing, is always right or wrong. Our convention, which takes no side on that dispute: `neutral` is for a first movement shown as involuntary (R3), or an act whose type is "neither" (picking up a twig) where the text shows no judgement about good or evil at stake. Unknown judgement is not `neutral` (R1).
+There is a tension here. Diogenes Laertius sorts types of act, and some types are "neither"; Inwood says an actual act, by a person who knows what they are doing, is always right or wrong. Our convention, which takes no side on that dispute: `neutral` is the reading that the scene shows a first movement (R3), or an act whose type is "neither" (picking up a twig) with no judgement about good or evil at stake. It gets probability like any other reading (R1); an unstated motive is not by itself a reason for `neutral`.
 
-### R8. One main cardinal virtue
+### R8. Every cardinal virtue at stake, unranked
 
 Primary: Arius 5b2 (Part 1). Hadot:
 
@@ -345,11 +345,11 @@ Honesty under justice:
 >
 > (William O. Stephens, "Stoic Ethics", *Internet Encyclopedia of Philosophy*, https://iep.utm.edu/stoiceth/)
 
-So: endurance of hardship and fear is courage; restraint of appetite, anger and vanity is temperance; honesty, kindness and fair dealing are justice; seeing what is and is not up to us, and what to do, is wisdom. Our convention: `virtue` is the one virtue most at stake (the sources give no rule for picking one); the virtues imply each other, so `virtue_other` is often non-empty.
+So: endurance of hardship and fear is courage; restraint of appetite, anger and vanity is temperance; honesty, kindness and fair dealing are justice; seeing what is and is not up to us, and what to do, is wisdom. Our convention (wassname: "don't woryabout ranking"): list every cardinal virtue at stake, unranked, by the field of the act: impulses, appetite, anger, vanity -> temperance; enduring hardship, pain, fear -> courage; what is due to others (honesty, fairness, kindness, keeping faith) -> justice. Wisdom is the knowledge behind all of them, so list it only when the act is about judging what is good, bad or to be done and no other field fits; otherwise it would fit every row.
 
 ### R9. Disputes, and praise in the source
 
-Where Stoics disagree, the label follows Epictetus's framing (R1-R6). Where his framing does not settle it, `stoic_contested`. The standard case:
+Where Stoics disagree, the label follows Epictetus's framing (R1-R6). Where his framing does not settle the scene, `stoic_contested`. That other Stoics, or the source's author, disagree is not by itself a reason: the labeller judges the scene, and the build compares its label with the source author's view separately. The standard case of a real dispute:
 
 > In deciding cases of this kind Diogenes of Babylonia, a great and highly esteemed Stoic, consistently holds one view; his pupil Antipater, a most profound scholar, holds another.
 >
