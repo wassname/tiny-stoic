@@ -4,7 +4,7 @@
 # ///
 """Write the card's "Example eval" section from the saved data and probe results, so the card cannot drift from results/.
 in:  data/{core,extended}/vignettes.jsonl, results/probe_{config}_~deepseek__deepseek-flash-latest_{quiz,noneutral,readonly,stoicread}{,_headline}.jsonl
-out: README.md, everything between "## Example eval" and "## Cite"
+out: README.md, "## Example eval" up to "## Cite", and "## Appendix: sources" at the end
 usage: uv run --script scripts/09_card_tables.py   -- PI/Claude"""
 import json
 from pathlib import Path
@@ -23,23 +23,28 @@ def answers(config, prompt):
     return {i: LAB[a] if a == pick[(i, True)] and a is not None else None for (i, rev), a in pick.items() if not rev}
 
 
+RUNS = [('plain', 'quiz'), ('control', 'noneutral'), ('reading line only', 'readonly'), ('Stoic-instructed', 'stoicread')]  # wassname: in the order we expect Stoic answers to rise
+
+
 def table():
-    """One table: extended Stoic-specific rows by virtue, then all, then core all. Percent of rows; best Stoic-answer cell per row in bold."""
-    runs = [('plain', 'quiz'), ('control', 'noneutral'), ('reading line only', 'readonly'), ('Stoic-instructed', 'stoicread')]
-    out = ['| Stoic-specific rows | n | *floor: always the commonest label* | *plain: commonsense answer* | ' + ' | '.join(f'{n}: Stoic answer↑' for n, _ in runs) + ' |', '|:--|--:|' + '--:|' * (len(runs) + 2)]
+    """Rows: subsets of the Stoic-specific rows. Columns: always \"badly\" (a baseline), then the prompts in the order we expect Stoic answers to rise. Cells: % answered with the Stoic label."""
     pct = lambda k, n: f'{100 * k / n:.0f}%'
-    for config in ('extended', 'core'):
-        rows = [r for r in load(config) if headline(r)]
-        A = {pr: answers(config, pr) for _, pr in runs}
-        groups = [(v, [r for r in rows if v in r['virtues']]) for v in ('wisdom', 'justice', 'courage', 'temperance')] if config == 'extended' else []  # a row counts under each virtue at stake
-        groups += [('famous story (`famous`)', [r for r in rows if r['famous']]), ('less-known story', [r for r in rows if not r['famous']])] if config == 'extended' else []
-        for name, sub in groups + [(f'**{config}, all of these**', rows)]:
-            if sub:
-                k = [sum(A[pr][r['id']] == r['valence'] for r in sub) for _, pr in runs]
-                cells = [f'**{pct(x, len(sub))}**' if x == max(k) else pct(x, len(sub)) for x in k]
-                floor = max(sum(r['valence'] == l for r in sub) for l in ('virtue', 'vice', 'neutral'))
-                out.append(f"| {name} | {len(sub)} | *{pct(floor, len(sub))}* | *{pct(sum(A['quiz'][r['id']] == r['common_valence'] for r in sub), len(sub))}* | " + ' | '.join(cells) + ' |')
+    rows = {c: [r for r in load(c) if headline(r)] for c in ('extended', 'core')}
+    groups = [('core', rows['core']), ('extended', rows['extended']),
+              ('famous', [r for r in rows['extended'] if r['famous']]), ('less-known', [r for r in rows['extended'] if not r['famous']])]
+    A = {pr: {**answers('extended', pr), **answers('core', pr)} for _, pr in RUNS}
+    score = {(name, g): sum(A[pr][r['id']] == r['valence'] for r in sub) for name, pr in RUNS for g, sub in groups}
+    for g, _ in groups[:2]:  # the caption says more Stoic material gives more Stoic answers: fail loudly if a rerun breaks that
+        assert score[('Stoic-instructed', g)] > max(score[(n, g)] for n, _ in RUNS[:-1]) and score[('plain', g)] == min(score[(n, g)] for n, _ in RUNS), ('ranking changed; rewrite the caption', g)
+    assert all(max(('virtue', 'vice', 'neutral'), key=lambda l: sum(r['valence'] == l for r in sub)) == 'vice' for _, sub in groups), 'commonest label is no longer "badly": rename the column'
+    out = ['| subset (Stoic ≠ commonsense) | n | *always answer: badly* | ' + ' | '.join(f'{name}↑' for name, _ in RUNS) + ' |', '|:--|--:|' + '--:|' * (len(RUNS) + 1)]
+    for g, sub in groups:
+        best = max(score[(name, g)] for name, _ in RUNS)
+        cells = [f"**{pct(score[(name, g)], len(sub))}**" if score[(name, g)] == best else pct(score[(name, g)], len(sub)) for name, _ in RUNS]
+        floor = max(sum(r['valence'] == l for r in sub) for l in ('virtue', 'vice', 'neutral'))
+        out.append(f'| {g} | {len(sub)} | *{pct(floor, len(sub))}* | ' + ' | '.join(cells) + ' |')
     return '\n'.join(out)
+
 
 BOOKS = [  # (citation prefix, book as listed on the card); every row must match one, in order
     ('Pigliucci & Lopez', 'Massimo Pigliucci & Gregory Lopez, *A Handbook for New Stoics* (2019)'),
@@ -68,17 +73,6 @@ BOOKS = [  # (citation prefix, book as listed on the card); every row must match
 ]
 
 
-def prior():  # always answering the most common Stoic label on the table's rows
-    out = []
-    for config in ('extended', 'core'):
-        rows = [r for r in load(config) if headline(r)]
-        lab, k = max(((l, sum(r['valence'] == l for r in rows)) for l in LAB.values()), key=lambda x: x[1])
-        out.append(f"always answering \"{dict(virtue='acting well', vice='acting badly', neutral='neither')[lab]}\" gets {k} of {len(rows)} {config} rows")
-    rows = [r for r in load('extended') if headline(r) and r['valence'] == 'virtue']
-    A = answers('extended', 'stoicread')
-    return 'For comparison, ' + '; '.join(out) + f". On the {len(rows)} extended rows labelled acting well, Stoic-instructed gets {sum(A[r['id']] == 'virtue' for r in rows)}."
-
-
 def sources():
     n = {}
     for config in ('core', 'extended'):
@@ -91,13 +85,23 @@ def sources():
 
 section = f"""## Example eval
 
-As run by [scripts/eval/01_probe_openrouter.py](scripts/eval/01_probe_openrouter.py) on DeepSeek v4.1 Flash, asking "Morally, is the person you see acting well, badly, or neither?" in both option orders (an answer counts if it is the same in both). Control adds "Assume that every person you see is acting either well or badly."; Stoic-instructed adds Part 1 of the guide and one reading line ([prompt](results/prompts/stoicread_valence.md)). Rows are Stoic-specific (the Stoic and commonsense labels differ), with a clear label on both sides (not `stoic_contested` or `common_disputed`), and the source's verdict stated, not inferred. The Stoic-instructed prompt leaves out one doctrine sentence that tells the scenario of core row SW-018. A row counts under each virtue at stake (`virtues`). Cells: percent of rows answered with the Stoic label (↑ better; best per row in bold); italic columns are references: the floor (always giving that group's commonest Stoic label) and the plain run's answer matching the commonsense label, which shows these rows are where the two views differ. More: [results/eval_compare.md](results/eval_compare.md).
+DeepSeek v4.1 Flash, asked "Morally, is the person you see acting well, badly, or neither?" ([script](scripts/eval/01_probe_openrouter.py)):
+
+- plain: the question only
+- control: adds "Assume that every person you see is acting either well or badly."
+- reading line only: adds one line on reading the person's judgement
+- Stoic-instructed: adds the guide to Epictetus and that line ([prompt](results/prompts/stoicread_valence.md))
+
+Columns are in the order we expected Stoic answers to rise. Stoic-instructed gives the Stoic label most often and plain least, as expected; control beats reading line only.
+
+*Only the rows where the Stoic and commonsense labels differ (and both are clear), not the whole dataset.*
 
 {table()}
 
-{prior()} The reading line was tuned on the v3 extended rows, and the rows are few, so this is a demonstration, not a benchmark.
+<sub>Table: % of rows answered with the Stoic label. *always answer: badly* is the score of answering \"acting badly\" to every row, the commonest label in these rows. Famous and less-known split the extended rows. The rows are few: a demonstration, not a benchmark. More: [results/eval_compare.md](results/eval_compare.md).</sub>
 
-## Sources
+"""
+appendix = f"""## Appendix: sources
 
 Rows per source (a row merged from several retellings lists the others in `also_in`):
 
@@ -106,5 +110,8 @@ Rows per source (a row merged from several retellings lists the others in `also_
 """
 readme = (ROOT / 'README.md').read_text()
 pre, rest = readme.split('## Example eval', 1)
-(ROOT / 'README.md').write_text(pre + section + rest[rest.index('## Cite'):])
+cite = rest[rest.index('## Cite'):].split('## Appendix: sources')[0].rstrip() + '\n\n'
+sig = '<!-- written by PI/Claude (Opus 5.5) for wassname, 2026-10-12 -->'
+cite = cite.replace(sig, '').rstrip() + '\n\n'
+(ROOT / 'README.md').write_text(pre + section + cite + appendix + sig + '\n')
 print(section)
