@@ -88,14 +88,14 @@ Columns are in the order we expected Stoic answers to rise. Stoic-instructed giv
 
 *Only the rows where the Stoic and commonsense labels differ (and both are clear), not the whole dataset.*
 
-| subset (Stoic ≠ commonsense) | n | *always answer: badly* | plain↑ | control↑ | reading line only↑ | Stoic-instructed↑ |
-|:--|--:|--:|--:|--:|--:|--:|
-| core | 10 | *70%* | 10% | 30% | 20% | **100%** |
-| extended | 53 | *75%* | 17% | 51% | 43% | **92%** |
-| famous | 6 | *67%* | 0% | 67% | 50% | **100%** |
-| less-known | 47 | *77%* | 19% | 49% | 43% | **91%** |
+| subset (Stoic ≠ commonsense) | n | *always answer: badly* | *always answer: well* | plain↑ | control↑ | reading line only↑ | Stoic-instructed↑ |
+|:--|--:|--:|--:|--:|--:|--:|--:|
+| core | 10 | *70%* | *30%* | 10% | 30% | 20% | **100%** |
+| extended | 53 | *75%* | *25%* | 17% | 51% | 43% | **92%** |
+| famous | 6 | *67%* | *33%* | 0% | 67% | 50% | **100%** |
+| less-known | 47 | *77%* | *23%* | 19% | 49% | 43% | **91%** |
 
-<sub>Table: % of rows answered with the Stoic label. *always answer: badly* is the score of answering "acting badly" to every row, the commonest label in these rows. Famous and less-known split the extended rows. The rows are few: a demonstration, not a benchmark. More: [results/eval_compare.md](results/eval_compare.md).</sub>
+<sub>Table: % of rows answered with the Stoic label. *always answer* columns: the score of giving one answer to every row. Famous and less-known split the extended rows. The rows are few: a demonstration, not a benchmark. More: [results/eval_compare.md](results/eval_compare.md).</sub>
 
 ## Cite
 

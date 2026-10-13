@@ -37,12 +37,12 @@ def table():
     for g, _ in groups[:2]:  # the caption says more Stoic material gives more Stoic answers: fail loudly if a rerun breaks that
         assert score[('Stoic-instructed', g)] > max(score[(n, g)] for n, _ in RUNS[:-1]) and score[('plain', g)] == min(score[(n, g)] for n, _ in RUNS), ('ranking changed; rewrite the caption', g)
     assert all(max(('virtue', 'vice', 'neutral'), key=lambda l: sum(r['valence'] == l for r in sub)) == 'vice' for _, sub in groups), 'commonest label is no longer "badly": rename the column'
-    out = ['| subset (Stoic ≠ commonsense) | n | *always answer: badly* | ' + ' | '.join(f'{name}↑' for name, _ in RUNS) + ' |', '|:--|--:|' + '--:|' * (len(RUNS) + 1)]
+    out = ['| subset (Stoic ≠ commonsense) | n | *always answer: badly* | *always answer: well* | ' + ' | '.join(f'{name}↑' for name, _ in RUNS) + ' |', '|:--|--:|' + '--:|' * (len(RUNS) + 2)]
     for g, sub in groups:
         best = max(score[(name, g)] for name, _ in RUNS)
         cells = [f"**{pct(score[(name, g)], len(sub))}**" if score[(name, g)] == best else pct(score[(name, g)], len(sub)) for name, _ in RUNS]
-        floor = max(sum(r['valence'] == l for r in sub) for l in ('virtue', 'vice', 'neutral'))
-        out.append(f'| {g} | {len(sub)} | *{pct(floor, len(sub))}* | ' + ' | '.join(cells) + ' |')
+        bad, good = (sum(r['valence'] == l for r in sub) for l in ('vice', 'virtue'))
+        out.append(f'| {g} | {len(sub)} | *{pct(bad, len(sub))}* | *{pct(good, len(sub))}* | ' + ' | '.join(cells) + ' |')
     return '\n'.join(out)
 
 
@@ -98,7 +98,7 @@ Columns are in the order we expected Stoic answers to rise. Stoic-instructed giv
 
 {table()}
 
-<sub>Table: % of rows answered with the Stoic label. *always answer: badly* is the score of answering \"acting badly\" to every row, the commonest label in these rows. Famous and less-known split the extended rows. The rows are few: a demonstration, not a benchmark. More: [results/eval_compare.md](results/eval_compare.md).</sub>
+<sub>Table: % of rows answered with the Stoic label. *always answer* columns: the score of giving one answer to every row. Famous and less-known split the extended rows. The rows are few: a demonstration, not a benchmark. More: [results/eval_compare.md](results/eval_compare.md).</sub>
 
 """
 appendix = f"""## Appendix: sources
